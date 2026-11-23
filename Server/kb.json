@@ -1,0 +1,16 @@
+{
+  "module_aliases": {
+    "cv2": "opencv-python",
+    "sklearn": "scikit-learn",
+    "PIL": "pillow",
+    "yaml": "pyyaml",
+    "bs4": "beautifulsoup4",
+    "dotenv": "python-dotenv"
+  },
+  "explanations": {
+    "missing": "'{dist}' is not installed in this PC's lab environment, so 'import {module}' fails with ModuleNotFoundError.",
+    "broken": "'{dist}' is installed but fails to import (corrupted or half-finished install). A clean reinstall usually fixes it.",
+    "version": "'{dist}' is version {found}, but the lab requires {expected}. Code written for {expected} may behave differently.",
+    "runtime_missing": "The student's program crashed because module '{module}' is not installed. It belongs to the package '{dist}'."
+  }
+}

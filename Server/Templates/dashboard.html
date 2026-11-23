@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LabMend · {{ lab }}</title>
+<!-- No internet links (CDNs) on purpose: lab networks may be offline. -->
+<style>
+  :root { --ink:#1B2430; --ink2:#4A5563; --muted:#7D8794; --line:#D5DAE0; --tint:#F2F4F7;
+          --green:#1E8E57; --greenT:#E4F3EA; --amber:#B86E00; --amberT:#FCF1DD;
+          --red:#C62D2D; --redT:#FBE6E6; --grey:#9AA3AE; --greyT:#ECEEF1; --mag:#B0246A; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", Calibri, Arial, sans-serif; color: var(--ink); background: #fff; }
+  header { background: var(--ink); color: #fff; padding: 12px 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 18px; }
+  header h1 span { color: #6FCF97; }
+  .chip { padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .grow { flex: 1; }
+  .small { font-size: 12px; color: #A7B1BD; }
+  main { display: grid; grid-template-columns: minmax(280px, 420px) 1fr; gap: 20px; padding: 20px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  h2 { font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; margin: 0 0 10px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .tile { border: 1.5px solid; border-radius: 6px; padding: 8px 4px; text-align: center; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .tile small { display: block; font-weight: 400; font-size: 11px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .green { border-color: var(--green); background: var(--greenT); color: var(--green); }
+  .amber { border-color: var(--amber); background: var(--amberT); color: var(--amber); }
+  .red { border-color: var(--red); background: var(--redT); color: var(--red); }
+  .offline { border-color: var(--grey); background: var(--greyT); color: var(--grey); }
+  .tile.selected { outline: 3px solid var(--ink); outline-offset: 1px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink2); margin-top: 10px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tabs button { background: var(--tint); color: var(--ink2); }
+  .tabs button.on { background: var(--ink); color: #fff; }
+  .card { border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+  .card.red { border-left-color: var(--red); background: #fff; color: var(--ink); }
+  .card.amber { border-left-color: var(--amber); background: #fff; color: var(--ink); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: var(--tint); color: var(--ink2); text-transform: uppercase; }
+  .tag.pending { background: var(--amberT); color: var(--amber); }
+  .tag.approved { background: #E3ECFA; color: #2457A6; }
+  .tag.applied, .tag.resolved { background: var(--greenT); color: var(--green); }
+  .tag.blocked, .tag.failed { background: var(--redT); color: var(--red); }
+  .tag.diagnosing { background: #F8E7F0; color: var(--mag); }
+  pre { background: var(--redT); color: #8A1F1F; border-radius: 6px; padding: 10px; font-size: 12px; white-space: pre-wrap; max-height: 160px; overflow: auto; margin: 8px 0; }
+  .fix { font-family: Consolas, "Courier New", monospace; font-size: 13px; background: var(--tint); border: 1px dashed var(--line); border-radius: 6px; padding: 8px; }
+  button { border: 0; border-radius: 6px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .approve { background: var(--green); color: #fff; }
+  .reject { background: #fff; color: var(--red); border: 1.5px solid var(--red); }
+  .muted { color: var(--muted); font-size: 12px; }
+  .empty { color: var(--muted); text-align: center; padding: 30px; border: 1px dashed var(--line); border-radius: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lab<span>Mend</span> · {{ lab }}</h1>
+  <span class="chip" id="c-online" style="background:#2E7D57">0 online</span>
+  <span class="chip" id="c-broken" style="background:#A83232">0 broken</span>
+  <span class="chip" id="c-pending" style="background:#4A5868">0 waiting approval</span>
+  <span class="grow"></span>
+  {% if demo %}<span class="chip" style="background:#B0246A">DEMO · simulated lab PCs</span>{% endif %}
+  <span class="small" id="ai"></span>
+</header>
+
+<main>
+  <section>
+    <h2>Lab PCs</h2>
+    <div class="grid" id="grid"></div>
+    <div class="legend">
+      <span><i style="background:var(--green)"></i>Healthy</span>
+      <span><i style="background:var(--amber)"></i>Wrong version</span>
+      <span><i style="background:var(--red)"></i>Broken</span>
+      <span><i style="background:var(--grey)"></i>Offline</span>
+    </div>
+    <p class="muted" id="note">Click a PC to see only its problems.</p>
+  </section>
+
+  <section>
+    <div class="tabs">
+      <button id="tab-open" class="on" onclick="setTab('open')">Needs attention</button>
+      <button id="tab-history" onclick="setTab('history')">History</button>
+    </div>
+    <div id="issues"></div>
+  </section>
+</main>
+
+<script>
+const OPEN = ["diagnosing", "pending", "approved", "applied", "blocked", "manual"];
+let data = { nodes: [], issues: [] }, tab = "open", selected = null;
+
+// Make text safe to put inside HTML (so an error message can't inject code).
+const safe = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function setTab(t) {
+  tab = t;
+  document.getElementById("tab-open").className = t === "open" ? "on" : "";
+  document.getElementById("tab-history").className = t === "history" ? "on" : "";
+  draw();
+}
+
+function pick(id) { selected = selected === id ? null : id; draw(); }
+
+async function act(id, action) {
+  const res = await fetch(`/api/issues/${id}/${action}`, { method: "POST" });
+  if (res.status === 403) alert("Approve/Reject works only on the instructor's laptop.");
+  refresh();
+}
+
+function draw() {
+  const { nodes, issues } = data;
+
+  document.getElementById("grid").innerHTML = nodes.map(n => {
+    const colour = n.online ? n.status : "offline";
+    const sub = n.online ? n.summary : `offline ${n.seconds_ago}s`;
+    return `<div class="tile ${colour} ${selected === n.node_id ? "selected" : ""}" onclick="pick('${safe(n.node_id)}')">
+              ${safe(n.node_id)}<small>${safe(sub)}</small></div>`;
+  }).join("") || `<div class="empty" style="grid-column:1/-1">No PCs yet. Start an agent.</div>`;
+
+  const online = nodes.filter(n => n.online);
+  document.getElementById("c-online").textContent = `${online.length} online`;
+  document.getElementById("c-broken").textContent = `${online.filter(n => n.status === "red").length} broken`;
+  document.getElementById("c-pending").textContent = `${issues.filter(i => i.state === "pending").length} waiting approval`;
+  document.getElementById("ai").textContent = data.ai ? `Local AI: ${data.ai}` : "Local AI off · knowledge base only";
+  document.getElementById("note").textContent = selected ? `Showing ${selected} only. Click it again to show all.` : "Click a PC to see only its problems.";
+
+  let list = issues.filter(i => (tab === "open") === OPEN.includes(i.state));
+  if (selected) list = list.filter(i => i.node_id === selected);
+
+  document.getElementById("issues").innerHTML = list.map(i => {
+    const samePending = issues.filter(x => x.signature === i.signature && x.state === "pending").length;
+    const by = i.source === "llm" ? "local AI" : i.source === "kb" ? "knowledge base" : "-";
+    return `<div class="card ${i.severity}">
+      <div class="row"><b>${safe(i.node_id)}</b>
+        <span class="tag ${i.state}">${i.state}</span><span class="tag">${safe(i.kind)}</span>
+        <span class="muted">diagnosed by ${by}</span></div>
+      <p>${safe(i.explanation)}</p>
+      ${i.error_text ? `<pre>${safe(i.error_text)}</pre>` : ""}
+      ${i.fix_text ? `<div class="fix">${safe(i.fix_text)}</div>` : ""}
+      ${i.result ? `<p class="muted">${safe(i.result)}</p>` : ""}
+      ${i.state === "pending" ? `<div class="row" style="margin-top:10px">
+        <button class="approve" onclick="act(${i.id}, 'approve')">Approve fix${samePending > 1 ? ` (${samePending} PCs)` : ""}</button>
+        <button class="reject" onclick="act(${i.id}, 'reject')">Reject</button></div>` : ""}
+      ${i.state === "manual" || i.state === "blocked" ? `<div class="row" style="margin-top:10px">
+        <button class="reject" onclick="act(${i.id}, 'reject')">Mark as handled</button></div>` : ""}
+    </div>`;
+  }).join("") || `<div class="empty">${tab === "open" ? "Nothing needs attention." : "No history yet."}</div>`;
+}
+
+async function refresh() {
+  try { data = await (await fetch("/api/state")).json(); draw(); } catch (e) { /* server restarting */ }
+}
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
