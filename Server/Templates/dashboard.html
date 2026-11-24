@@ -41,6 +41,14 @@
   .pill { font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); color: var(--ink2); }
   .pill.ai { color: #D9CCFF; border-color: rgba(155,123,255,.45); box-shadow: 0 0 18px rgba(155,123,255,.18) inset; }
   .pill.demo { color: #fff; background: linear-gradient(90deg, #B0246A, #7B3FE4); border: 0; }
+  .ctl { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  .ctl select { font: 700 13px "Segoe UI", system-ui, sans-serif; color: var(--ink); background: #0E1626; border: 1px solid rgba(79,216,255,.35);
+                border-radius: 10px; padding: 7px 10px; letter-spacing: 0; text-transform: none; }
+  .ctl select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .toggle { font-size: 12px; padding: 7px 12px; border-radius: 999px; background: var(--glass); color: var(--ink2); border: 1px solid var(--line); }
+  .toggle.on { color: #03140C; background: linear-gradient(90deg, var(--green), var(--cyan)); border: 0; box-shadow: 0 0 20px rgba(60,227,154,.35); }
+  .tag.auto { color: #03140C; background: linear-gradient(90deg, var(--green), var(--cyan)); }
+  .tag.teacher { color: var(--cyan); background: rgba(79,216,255,.12); }
   .live { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink2); font-family: var(--mono); }
   .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); animation: blink 1.6s infinite; }
 
@@ -116,8 +124,10 @@
 <div class="wrap">
   <header>
     <div class="logo">Lab<span>Mend</span></div>
-    <div class="crumb">{{ lab }} · instructor console</div>
+    <div class="crumb" id="crumb">{{ lab }} · instructor console</div>
     <div class="grow"></div>
+    <label class="ctl" for="profile">Course <select id="profile" onchange="setProfile(this.value)"></select></label>
+    <button id="autoheal" class="toggle" onclick="toggleHeal()">Auto-heal: off</button>
     {% if demo %}<span class="pill demo">DEMO · simulated lab PCs</span>{% endif %}
     <span class="pill ai" id="ai"></span>
     <span class="live"><i></i><span id="clock">--:--:--</span></span>
@@ -187,6 +197,18 @@ async function act(id, action) {
   refresh();
 }
 
+async function setProfile(id) {
+  const res = await fetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile: id }) });
+  if (res.status === 403) alert("Changing the course works only on the instructor's laptop.");
+  refresh();
+}
+
+async function toggleHeal() {
+  const res = await fetch("/api/autoheal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on: !data.auto_heal }) });
+  if (res.status === 403) alert("Auto-heal can be changed only on the instructor's laptop.");
+  refresh();
+}
+
 /* ---------------- headline, KPIs, cards ---------------- */
 function drawPanels() {
   const { nodes, issues } = data;
@@ -197,7 +219,7 @@ function drawPanels() {
   const avg = fixed.length ? fixed.reduce((t, i) => t + (i.updated - i.created), 0) / fixed.length : null;
 
   const h = document.getElementById("headline"), st = document.getElementById("status");
-  if (!nodes.length) { h.textContent = "Waiting for agents"; h.style.color = "var(--ink)"; st.style.setProperty("--glow", "rgba(79,216,255,.15)"); }
+  if (!online.length) { h.textContent = nodes.length ? "All PCs offline" : "Waiting for agents"; h.style.color = "var(--ink2)"; st.style.setProperty("--glow", "rgba(91,102,120,.2)"); }
   else if (red) { h.textContent = `${red} PC${red > 1 ? "s" : ""} broken`; h.style.color = "var(--red)"; st.style.setProperty("--glow", "rgba(255,92,108,.28)"); }
   else if (amber) { h.textContent = `${amber} PC${amber > 1 ? "s" : ""} drifting`; h.style.color = "var(--amber)"; st.style.setProperty("--glow", "rgba(255,181,71,.25)"); }
   else { h.textContent = "All systems healthy"; h.style.color = "var(--green)"; st.style.setProperty("--glow", "rgba(60,227,154,.22)"); }
@@ -211,6 +233,14 @@ function drawPanels() {
   document.getElementById("k-fixed").textContent = fixed.length;
   document.getElementById("k-avg").textContent = avg === null ? "-" : secs(avg);
   document.getElementById("ai").textContent = data.ai ? `Local AI · ${data.ai}` : "Knowledge base only";
+  if (data.course) document.getElementById("crumb").textContent = `${data.lab} · ${data.course} · instructor console`;
+  const sel = document.getElementById("profile");
+  const opts = (data.profiles || []).map(p => `<option value="${safe(p.id)}">${safe(p.course)} · ${p.packages} packages</option>`).join("");
+  if (sel.dataset.opts !== opts) { sel.innerHTML = opts; sel.dataset.opts = opts; }
+  if (document.activeElement !== sel) sel.value = data.profile;
+  const heal = document.getElementById("autoheal");
+  heal.textContent = data.auto_heal ? "Auto-heal: on" : "Auto-heal: off";
+  heal.className = data.auto_heal ? "toggle on" : "toggle";
   document.getElementById("map-note").textContent = selected ? `Focused on ${selected} · click it again to show all` : "Click a PC to focus";
 
   let list = issues.filter(i => (tab === "open") === OPEN.includes(i.state));
@@ -220,9 +250,11 @@ function drawPanels() {
     const by = i.source === "llm" ? `<span class="by ai">diagnosed by local AI</span>`
              : i.source === "kb" ? `<span class="by">diagnosed by knowledge base</span>` : "";
     const sev = i.state === "resolved" ? "done" : i.severity;
+    const who = i.approved_by === "policy" ? `<span class="tag auto">auto-healed</span>`
+              : i.approved_by === "teacher" ? `<span class="tag teacher">teacher-approved</span>` : "";
     return `<div class="card ${sev}">
       <div class="row"><b class="node">${safe(i.node_id)}</b>
-        <span class="tag ${i.state}">${i.state}</span><span class="tag">${safe(i.kind)}</span>${by}
+        <span class="tag ${i.state}">${i.state}</span><span class="tag">${safe(i.kind)}</span>${who}${by}
         <span class="time">${clock(i.created)}</span></div>
       <p>${safe(i.explanation)}</p>
       ${i.error_text ? `<pre>${safe(i.error_text)}</pre>` : ""}

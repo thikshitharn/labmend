@@ -1,0 +1,10 @@
+{
+  "lab_name": "AI Lab 1",
+  "course": "Week 5 · Data Science",
+  "packages": [
+    {"dist": "requests", "module": "requests", "version": "2.32.3"},
+    {"dist": "tabulate", "module": "tabulate", "version": "0.9.0"},
+    {"dist": "colorama", "module": "colorama", "version": "0.4.6"},
+    {"dist": "numpy", "module": "numpy", "version": "2.1.3"}
+  ]
+}

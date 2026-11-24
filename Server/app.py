@@ -16,8 +16,23 @@ app = Flask(__name__)
 
 
 # =============== helpers ===============
+def profile_ids():
+    return sorted(f.stem for f in config.PROFILES_DIR.glob("*.json"))
+
+
+def active_profile():
+    pid = db.get_setting("profile", config.DEFAULT_PROFILE)
+    return pid if pid in profile_ids() else config.DEFAULT_PROFILE
+
+
 def load_manifest():
-    return json.loads(config.MANIFEST_PATH.read_text(encoding="utf-8"))
+    """The package list of the course that is active right now."""
+    path = config.PROFILES_DIR / f"{active_profile()}.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def auto_heal_on():
+    return db.get_setting("auto_heal", "0") == "1"
 
 
 def agents_only(func):
@@ -54,8 +69,15 @@ def store_diagnosis(node_id, d, manifest):
     else:
         state = "manual"
 
+    # Auto-heal policy: known fixes from the knowledge base skip the queue. AI fixes never do.
+    auto = state == "pending" and d["source"] == "kb" and auto_heal_on()
+    if auto:
+        state = "approved"
     issue_id = db.add_issue(node_id, d["signature"], d["kind"], d["severity"], d["error_text"],
                             d["explanation"], d["fix"], d["source"], state)
+    if auto:
+        db.update_issue(issue_id, approved_by="policy",
+                        result="Auto-approved by policy (known fix). Waiting for the PC to apply it.")
     if state == "diagnosing":   # the AI can take seconds, so run it in the background
         threading.Thread(target=llm_job, args=(issue_id, d["error_text"], manifest), daemon=True).start()
     return issue_id
@@ -165,7 +187,8 @@ def api_fix_result():
 # =============== dashboard ===============
 @app.get("/")
 def dashboard():
-    return render_template("dashboard.html", lab=load_manifest()["lab_name"], demo=config.DEMO_MODE)
+    m = load_manifest()
+    return render_template("dashboard.html", lab=f'{m["lab_name"]} · {m["course"]}', demo=config.DEMO_MODE)
 
 
 @app.get("/api/state")
@@ -178,8 +201,15 @@ def api_state():
     issues = db.recent_issues()
     for i in issues:
         i["fix_text"] = describe(i["fix"])
+    profiles = []
+    for pid in profile_ids():
+        p = json.loads((config.PROFILES_DIR / f"{pid}.json").read_text(encoding="utf-8"))
+        profiles.append({"id": pid, "course": p["course"], "packages": len(p["packages"])})
+    m = load_manifest()
     return jsonify({"nodes": nodes, "issues": issues,
-                    "ai": config.OLLAMA_MODEL if config.USE_LLM else None})
+                    "ai": config.OLLAMA_MODEL if config.USE_LLM else None,
+                    "lab": m["lab_name"], "course": m["course"], "profile": active_profile(),
+                    "profiles": profiles, "auto_heal": auto_heal_on()})
 
 
 @app.post("/api/issues/<int:issue_id>/approve")
@@ -194,7 +224,8 @@ def approve(issue_id):
         return jsonify({"approved": 0, "reason": reason})
     same = db.issues_with("pending", signature=issue["signature"])   # one click, whole lab
     for i in same:
-        db.update_issue(i["id"], state="approved", result="Approved. Waiting for the PC to apply it.")
+        db.update_issue(i["id"], state="approved", approved_by="teacher",
+                        result="Approved by the teacher. Waiting for the PC to apply it.")
     return jsonify({"approved": len(same)})
 
 
@@ -203,6 +234,32 @@ def approve(issue_id):
 def reject(issue_id):
     db.update_issue(issue_id, state="rejected", result="Rejected by the instructor.")
     return jsonify({"ok": True})
+
+
+@app.post("/api/profile")
+@instructor_only
+def set_profile():
+    """Prepare the lab for another course: every agent checks against the new list next cycle."""
+    pid = (request.get_json() or {}).get("profile")
+    if pid not in profile_ids():
+        abort(400)
+    db.set_setting("profile", pid)
+    return jsonify({"profile": pid})
+
+
+@app.post("/api/autoheal")
+@instructor_only
+def set_auto_heal():
+    on = bool((request.get_json() or {}).get("on"))
+    db.set_setting("auto_heal", "1" if on else "0")
+    approved = 0
+    if on:   # switching it on also clears the known fixes already waiting
+        for i in db.issues_with("pending"):
+            if i["source"] == "kb":
+                db.update_issue(i["id"], state="approved", approved_by="policy",
+                                result="Auto-approved by policy (known fix). Waiting for the PC to apply it.")
+                approved += 1
+    return jsonify({"auto_heal": on, "approved": approved})
 
 
 # =============== start ===============

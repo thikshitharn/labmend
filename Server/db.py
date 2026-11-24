@@ -35,6 +35,10 @@ CREATE TABLE IF NOT EXISTS issues (
     created     REAL,
     updated     REAL
 );
+CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT
+);
 """
 
 
@@ -47,6 +51,23 @@ def connect():
 def init_db():
     with _lock, connect() as conn:
         conn.executescript(SCHEMA)
+        try:   # add the column to databases created before auto-heal existed
+            conn.execute("ALTER TABLE issues ADD COLUMN approved_by TEXT")
+        except sqlite3.OperationalError:
+            pass   # column already exists
+
+
+# ---------------- settings (active course, auto-heal on/off) ----------------
+def get_setting(key, default=None):
+    with _lock, connect() as conn:
+        row = conn.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+        return row["value"] if row else default
+
+
+def set_setting(key, value):
+    with _lock, connect() as conn:
+        conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
+                     "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, str(value)))
 
 
 def to_issue(row):

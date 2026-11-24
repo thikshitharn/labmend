@@ -1,0 +1,9 @@
+{
+  "lab_name": "AI Lab 1",
+  "course": "Week 8 · Web APIs",
+  "packages": [
+    {"dist": "requests", "module": "requests", "version": "2.32.3"},
+    {"dist": "colorama", "module": "colorama", "version": "0.4.6"},
+    {"dist": "flask", "module": "flask", "version": "3.1.0"}
+  ]
+}

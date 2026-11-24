@@ -5,7 +5,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 
 DB_PATH = os.environ.get("LABMEND_DB", str(BASE_DIR / "labmend.db"))
-MANIFEST_PATH = BASE_DIR / "manifest.json"
+PROFILES_DIR = BASE_DIR / "profiles"          # one JSON file per course (the lab's package list)
+DEFAULT_PROFILE = "python_basics"
 KB_PATH = BASE_DIR / "kb.json"
 
 # Shared secret: agents must send this, or the server ignores them.

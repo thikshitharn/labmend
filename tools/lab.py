@@ -5,6 +5,7 @@
   python tools\\lab.py break PC-03 missing colorama
   python tools\\lab.py break PC-05 version tabulate 0.8.10
   python tools\\lab.py break all missing colorama      (every PC at once)
+  python tools\\lab.py reset          put every PC back to the Week 1 packages (before a demo)
 
 Start the server first (python Server\\app.py). Ctrl+C here stops every agent.
 """
@@ -16,7 +17,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent          # the Labmend folder
 LABS = ROOT / "labs"
-MANIFEST = ROOT / "Server" / "manifest.json"
+PROFILES = ROOT / "Server" / "profiles"
+BASE = PROFILES / "python_basics.json"          # what a fresh lab PC starts with
 
 
 def env_dir(n):
@@ -34,9 +36,32 @@ def node_number(name):
     return int(name.upper().replace("PC-", ""))
 
 
+def pins_of(profile_file):
+    manifest = json.loads(profile_file.read_text(encoding="utf-8"))
+    return [f"{p['dist']}=={p['version']}" if p.get("version") else p["dist"] for p in manifest["packages"]]
+
+
+def all_pcs():
+    return sorted(int(d.name[3:]) for d in LABS.glob("pc-*") if d.is_dir())
+
+
+def reset():
+    """Put every lab PC back to the Week 1 state: base packages only, extras from other courses removed."""
+    base = pins_of(BASE)
+    base_names = {b.split("==")[0].lower() for b in base}
+    every = {p.split("==")[0] for f in PROFILES.glob("*.json") for p in pins_of(f)}
+    extras = sorted(e for e in every if e.lower() not in base_names)
+    for n in all_pcs():
+        py = str(env_python(n))
+        if extras:
+            subprocess.run([py, "-m", "pip", "uninstall", "-y", "-q", *extras], check=False,
+                           stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+        subprocess.run([py, "-m", "pip", "install", "-q", "--disable-pip-version-check", *base], check=True)
+        print(f"PC-{n:02d}: reset to {', '.join(base)}")
+
+
 def setup(count):
-    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    pins = [f"{p['dist']}=={p['version']}" if p.get("version") else p["dist"] for p in manifest["packages"]]
+    pins = pins_of(BASE)
     LABS.mkdir(exist_ok=True)
     for n in range(1, count + 1):
         if env_python(n).exists():
@@ -74,8 +99,7 @@ def start(count):
 
 
 def break_pc(target, kind, package, version=None):
-    numbers = sorted(int(d.name[3:]) for d in LABS.glob("pc-*") if d.is_dir()) if target.lower() == "all" \
-        else [node_number(target)]
+    numbers = all_pcs() if target.lower() == "all" else [node_number(target)]
     for n in numbers:
         py = str(env_python(n))
         if kind == "missing":
@@ -94,6 +118,8 @@ if __name__ == "__main__":
         setup(int(a[1]) if len(a) > 1 else 6)
     elif len(a) >= 1 and a[0] == "start":
         start(int(a[1]) if len(a) > 1 else 6)
+    elif len(a) >= 1 and a[0] == "reset":
+        reset()
     elif len(a) >= 4 and a[0] == "break":
         break_pc(a[1], a[2], a[3], a[4] if len(a) > 4 else None)
     else:
