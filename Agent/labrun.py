@@ -45,7 +45,7 @@ if code != 0 and "Traceback" in error:
             data=json.dumps(body).encode("utf-8"),
             headers={
                 "Content-Type": "application/json",
-                "X-LabMend-Token": args.token
+                "X-Lab-Token": args.token
             }
         )
 
