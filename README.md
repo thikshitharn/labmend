@@ -13,26 +13,13 @@ In a 90-minute coding lab, the first 20 or more minutes often go to missing pack
 
 ## How it works
 ```mermaid
-flowchart LR
-    subgraph PC["🖥️ Lab PC · Agent/agent.py"]
-        A["1 · Check environment<br/>packages, tools, disk<br/>every 5 s"]
-        F["5 · Run fix safely<br/>pip in lab venv only"]
-        G["6 · Check again<br/>fix verified ✅"]
-    end
-
-    subgraph HOST["💻 Instructor laptop · Server/app.py"]
-        B["2 · Diagnose<br/>knowledge base first,<br/>local AI for unknown errors"]
-        C["3 · Whitelist check<br/>safety layer 1"]
-        D{"4 · Teacher approves<br/>or auto-heal<br/>for known fixes"}
-    end
-
-    A -- "report" --> B
-    B --> C
-    C -- "safe" --> D
-    C -- "unsafe" --> X["⛔ Blocked"]
-    D -- "fix sent" --> F
-    F --> G
-    G -. "next report" .-> B
+flowchart TD
+    A["🖥️ Lab PC checks itself<br/>packages · tools · disk"] --> B["💻 Instructor laptop diagnoses<br/>knowledge base or local AI"]
+    B --> C{"🛡️ Safe fix?"}
+    C -- "No" --> X["⛔ Blocked"]
+    C -- "Yes" --> D["👩‍🏫 Teacher approves<br/>or auto-heal"]
+    D --> E["🔧 Lab PC runs the fix"]
+    E --> F["✅ Re-checked and verified"]
 ```
 
 1. **Check:** every lab PC checks its environment and reports to the instructor laptop.
