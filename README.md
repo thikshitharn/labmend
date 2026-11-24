@@ -12,16 +12,35 @@ LabMend keeps every lab PC ready for class. It finds broken Python environments 
 In a 90-minute coding lab, the first 20 or more minutes often go to missing packages, wrong versions and missing tools, fixed one PC at a time. Lab internet is often slow or restricted, so cloud tools can't help.
 
 ## How it works
-```text
-LAB PC  (Agent/agent.py)                    INSTRUCTOR LAPTOP  (Server/app.py)
-1. Checks the lab environment  --report-->  2. Diagnoses: knowledge base first,
-   every 5 seconds                             local AI (Ollama) for unknown errors
-                                            3. Whitelist checks every proposed fix
-                                            4. Dashboard: teacher approves
-                                               (or auto-heal for known fixes)
-5. Runs the fix safely         <--fix----
-6. Checks again = fix verified
+```mermaid
+flowchart LR
+    subgraph PC["🖥️ Lab PC · Agent/agent.py"]
+        A["1 · Check environment<br/>packages, tools, disk<br/>every 5 s"]
+        F["5 · Run fix safely<br/>pip in lab venv only"]
+        G["6 · Check again<br/>fix verified ✅"]
+    end
+
+    subgraph HOST["💻 Instructor laptop · Server/app.py"]
+        B["2 · Diagnose<br/>knowledge base first,<br/>local AI for unknown errors"]
+        C["3 · Whitelist check<br/>safety layer 1"]
+        D{"4 · Teacher approves<br/>or auto-heal<br/>for known fixes"}
+    end
+
+    A -- "report" --> B
+    B --> C
+    C -- "safe" --> D
+    C -- "unsafe" --> X["⛔ Blocked"]
+    D -- "fix sent" --> F
+    F --> G
+    G -. "next report" .-> B
 ```
+
+1. **Check:** every lab PC checks its environment and reports to the instructor laptop.
+2. **Diagnose:** the server explains each problem, using the knowledge base first and the local AI for unknown errors.
+3. **Whitelist:** every proposed fix is checked, and anything unsafe is blocked.
+4. **Approve:** the teacher approves with one click, or known fixes auto-heal.
+5. **Fix:** the PC re-checks the command and runs pip only inside the lab environment.
+6. **Verify:** the next check confirms the fix worked.
 
 ## Features
 - **Live instructor console:** lab map, live counts, problem cards, and a history of every fix
