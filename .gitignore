@@ -3,4 +3,5 @@ lab_env/
 lab_env2/
 __pycache__/
 lab_venv/
+labs/
 *.db

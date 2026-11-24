@@ -4,102 +4,182 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LabMend · {{ lab }}</title>
-<!-- No internet links (CDNs) on purpose: lab networks may be offline. -->
+<!-- Everything is inside this file (no internet links): lab networks may be offline. -->
 <style>
-  :root { --ink:#1B2430; --ink2:#4A5563; --muted:#7D8794; --line:#D5DAE0; --tint:#F2F4F7;
-          --green:#1E8E57; --greenT:#E4F3EA; --amber:#B86E00; --amberT:#FCF1DD;
-          --red:#C62D2D; --redT:#FBE6E6; --grey:#9AA3AE; --greyT:#ECEEF1; --mag:#B0246A; }
+  :root {
+    --bg: #05070D; --bg2: #0A0F1C; --glass: rgba(255,255,255,0.045); --glass2: rgba(255,255,255,0.08);
+    --line: rgba(255,255,255,0.09); --ink: #EAF0FA; --ink2: #A7B3C6; --muted: #6B778C;
+    --green: #3CE39A; --amber: #FFB547; --red: #FF5C6C; --grey: #5B6678; --cyan: #4FD8FF; --violet: #9B7BFF;
+    --mono: Consolas, "Cascadia Mono", "Courier New", monospace;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: "Segoe UI", Calibri, Arial, sans-serif; color: var(--ink); background: #fff; }
-  header { background: var(--ink); color: #fff; padding: 12px 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  header h1 { margin: 0; font-size: 18px; }
-  header h1 span { color: #6FCF97; }
-  .chip { padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; color: var(--ink); font-family: "Segoe UI", system-ui, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(79,216,255,0.12), transparent 60%),
+      radial-gradient(900px 500px at 100% 10%, rgba(155,123,255,0.12), transparent 60%),
+      radial-gradient(800px 600px at 50% 120%, rgba(60,227,154,0.08), transparent 60%),
+      var(--bg);
+    overflow-x: hidden;
+  }
+  body::before {            /* faint blueprint grid */
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+  }
+  .wrap { position: relative; z-index: 1; padding: 18px 26px 26px; max-width: 1600px; margin: 0 auto; }
+
+  /* header */
+  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .logo { font-size: 22px; font-weight: 800; letter-spacing: .5px; }
+  .logo span { background: linear-gradient(90deg, var(--green), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .crumb { color: var(--muted); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
   .grow { flex: 1; }
-  .small { font-size: 12px; color: #A7B1BD; }
-  main { display: grid; grid-template-columns: minmax(280px, 420px) 1fr; gap: 20px; padding: 20px; }
-  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
-  h2 { font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; margin: 0 0 10px; }
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .tile { border: 1.5px solid; border-radius: 6px; padding: 8px 4px; text-align: center; font-weight: 700; font-size: 13px; cursor: pointer; }
-  .tile small { display: block; font-weight: 400; font-size: 11px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .green { border-color: var(--green); background: var(--greenT); color: var(--green); }
-  .amber { border-color: var(--amber); background: var(--amberT); color: var(--amber); }
-  .red { border-color: var(--red); background: var(--redT); color: var(--red); }
-  .offline { border-color: var(--grey); background: var(--greyT); color: var(--grey); }
-  .tile.selected { outline: 3px solid var(--ink); outline-offset: 1px; }
-  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink2); margin-top: 10px; }
-  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+  .pill { font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); color: var(--ink2); }
+  .pill.ai { color: #D9CCFF; border-color: rgba(155,123,255,.45); box-shadow: 0 0 18px rgba(155,123,255,.18) inset; }
+  .pill.demo { color: #fff; background: linear-gradient(90deg, #B0246A, #7B3FE4); border: 0; }
+  .live { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink2); font-family: var(--mono); }
+  .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); animation: blink 1.6s infinite; }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: minmax(260px, 1.1fr) 2fr; gap: 16px; margin: 20px 0 16px; align-items: stretch; }
+  .status { padding: 18px 20px; border-radius: 16px; background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(8px); position: relative; overflow: hidden; }
+  .status small { color: var(--muted); letter-spacing: .16em; font-size: 11px; text-transform: uppercase; }
+  .status h1 { margin: 6px 0 4px; font-size: clamp(24px, 2.6vw, 38px); line-height: 1.05; letter-spacing: .01em; text-wrap: balance; }
+  .status p { margin: 0; color: var(--ink2); font-size: 13px; font-family: var(--mono); }
+  .status::after { content: ""; position: absolute; inset: -1px; border-radius: 16px; pointer-events: none;
+                   box-shadow: 0 0 60px var(--glow, rgba(60,227,154,.18)) inset; }
+  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 12px; }
+  .kpi { padding: 14px 16px; border-radius: 16px; background: var(--glass); border: 1px solid var(--line); }
+  .kpi b { display: block; font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .kpi span { font-size: 11px; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; }
+  .kpi.c1 b { color: var(--cyan); text-shadow: 0 0 18px rgba(79,216,255,.45); }
+  .kpi.c2 b { color: var(--green); text-shadow: 0 0 18px rgba(60,227,154,.45); }
+  .kpi.c3 b { color: var(--red); text-shadow: 0 0 18px rgba(255,92,108,.45); }
+  .kpi.c4 b { color: var(--amber); text-shadow: 0 0 18px rgba(255,181,71,.45); }
+  .kpi.c5 b { color: var(--violet); text-shadow: 0 0 18px rgba(155,123,255,.45); }
+
+  /* main */
+  main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(360px, 1fr); gap: 16px; }
+  .panel { border-radius: 18px; background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(8px); padding: 16px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 11px; color: var(--muted); letter-spacing: .16em; text-transform: uppercase; display: flex; justify-content: space-between; gap: 10px; }
+  #map-wrap { position: relative; height: 560px; }
+  #map { width: 100%; height: 100%; display: block; cursor: pointer; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink2); margin-top: 8px; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 8px currentColor; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
   .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-  .tabs button { background: var(--tint); color: var(--ink2); }
-  .tabs button.on { background: var(--ink); color: #fff; }
-  .card { border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
-  .card.red { border-left-color: var(--red); background: #fff; color: var(--ink); }
-  .card.amber { border-left-color: var(--amber); background: #fff; color: var(--ink); }
+  .tabs button { background: transparent; color: var(--ink2); border: 1px solid var(--line); }
+  .tabs button.on { background: linear-gradient(90deg, rgba(79,216,255,.18), rgba(155,123,255,.18)); color: var(--ink); border-color: rgba(79,216,255,.4); }
+  #issues { max-height: 640px; overflow-y: auto; padding-right: 4px; }
+  #issues::-webkit-scrollbar { width: 6px; } #issues::-webkit-scrollbar-thumb { background: var(--glass2); border-radius: 6px; }
+
+  .card { position: relative; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; background: rgba(255,255,255,0.035); border: 1px solid var(--line); overflow: hidden; animation: rise .35s ease-out; }
+  .card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--sev, var(--grey)); box-shadow: 0 0 14px var(--sev, var(--grey)); }
+  .card.red { --sev: var(--red); } .card.amber { --sev: var(--amber); } .card.done { --sev: var(--green); }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: var(--tint); color: var(--ink2); text-transform: uppercase; }
-  .tag.pending { background: var(--amberT); color: var(--amber); }
-  .tag.approved { background: #E3ECFA; color: #2457A6; }
-  .tag.applied, .tag.resolved { background: var(--greenT); color: var(--green); }
-  .tag.blocked, .tag.failed { background: var(--redT); color: var(--red); }
-  .tag.diagnosing { background: #F8E7F0; color: var(--mag); }
-  pre { background: var(--redT); color: #8A1F1F; border-radius: 6px; padding: 10px; font-size: 12px; white-space: pre-wrap; max-height: 160px; overflow: auto; margin: 8px 0; }
-  .fix { font-family: Consolas, "Courier New", monospace; font-size: 13px; background: var(--tint); border: 1px dashed var(--line); border-radius: 6px; padding: 8px; }
-  button { border: 0; border-radius: 6px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer; }
-  .approve { background: var(--green); color: #fff; }
-  .reject { background: #fff; color: var(--red); border: 1.5px solid var(--red); }
-  .muted { color: var(--muted); font-size: 12px; }
-  .empty { color: var(--muted); text-align: center; padding: 30px; border: 1px dashed var(--line); border-radius: 8px; }
+  .card b.node { font-size: 15px; letter-spacing: .02em; }
+  .tag { font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: .08em; text-transform: uppercase; background: var(--glass2); color: var(--ink2); }
+  .tag.pending { color: var(--amber); background: rgba(255,181,71,.12); }
+  .tag.approved { color: var(--cyan); background: rgba(79,216,255,.12); }
+  .tag.applied, .tag.resolved { color: var(--green); background: rgba(60,227,154,.12); }
+  .tag.blocked, .tag.failed { color: var(--red); background: rgba(255,92,108,.12); }
+  .tag.diagnosing { color: var(--violet); background: rgba(155,123,255,.14); }
+  .by { font-size: 12px; color: var(--muted); }
+  .by.ai { color: var(--violet); font-weight: 700; text-shadow: 0 0 10px rgba(155,123,255,.5); }
+  .time { margin-left: auto; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .card p { margin: 8px 0; line-height: 1.5; color: var(--ink); font-size: 14px; }
+  pre { margin: 8px 0; padding: 10px 12px; border-radius: 10px; font-family: var(--mono); font-size: 12px; white-space: pre-wrap;
+        max-height: 140px; overflow: auto; color: #FFB3BB; background: rgba(255,92,108,.07); border: 1px solid rgba(255,92,108,.18); }
+  .fix { font-family: var(--mono); font-size: 13px; color: var(--cyan); padding: 9px 12px; border-radius: 10px; background: rgba(79,216,255,.06); border: 1px dashed rgba(79,216,255,.35); }
+  .fix::before { content: "› "; color: var(--muted); }
+  .result { font-size: 12px; color: var(--ink2); font-family: var(--mono); }
+  button { border: 0; border-radius: 10px; padding: 9px 16px; font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; letter-spacing: .02em; }
+  button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .approve { color: #03140C; background: linear-gradient(90deg, var(--green), #8BF5C6); box-shadow: 0 0 24px rgba(60,227,154,.35); }
+  .approve:hover { box-shadow: 0 0 34px rgba(60,227,154,.6); }
+  .reject { color: var(--red); background: transparent; border: 1px solid rgba(255,92,108,.55); }
+  .empty { color: var(--muted); text-align: center; padding: 40px 16px; border: 1px dashed var(--line); border-radius: 14px; }
+
+  @keyframes blink { 50% { opacity: .35; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .card, .live i { animation: none; } }
+  @media (max-width: 1100px) { main, .hero { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(3, minmax(0,1fr)); } #map-wrap { height: 440px; } }
+  @media (max-width: 560px) { .wrap { padding: 14px 16px; } .kpis { grid-template-columns: repeat(2, minmax(0,1fr)); } #map-wrap { height: 360px; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>Lab<span>Mend</span> · {{ lab }}</h1>
-  <span class="chip" id="c-online" style="background:#2E7D57">0 online</span>
-  <span class="chip" id="c-broken" style="background:#A83232">0 broken</span>
-  <span class="chip" id="c-pending" style="background:#4A5868">0 waiting approval</span>
-  <span class="grow"></span>
-  {% if demo %}<span class="chip" style="background:#B0246A">DEMO · simulated lab PCs</span>{% endif %}
-  <span class="small" id="ai"></span>
-</header>
+<div class="wrap">
+  <header>
+    <div class="logo">Lab<span>Mend</span></div>
+    <div class="crumb">{{ lab }} · instructor console</div>
+    <div class="grow"></div>
+    {% if demo %}<span class="pill demo">DEMO · simulated lab PCs</span>{% endif %}
+    <span class="pill ai" id="ai"></span>
+    <span class="live"><i></i><span id="clock">--:--:--</span></span>
+  </header>
 
-<main>
-  <section>
-    <h2>Lab PCs</h2>
-    <div class="grid" id="grid"></div>
-    <div class="legend">
-      <span><i style="background:var(--green)"></i>Healthy</span>
-      <span><i style="background:var(--amber)"></i>Wrong version</span>
-      <span><i style="background:var(--red)"></i>Broken</span>
-      <span><i style="background:var(--grey)"></i>Offline</span>
+  <section class="hero">
+    <div class="status" id="status">
+      <small>Lab status</small>
+      <h1 id="headline">Waiting for agents</h1>
+      <p id="subline">Start an agent on a lab PC</p>
     </div>
-    <p class="muted" id="note">Click a PC to see only its problems.</p>
+    <div class="kpis">
+      <div class="kpi c1"><b id="k-online">0/0</b><span>PCs online</span></div>
+      <div class="kpi c2"><b id="k-healthy">0</b><span>Healthy</span></div>
+      <div class="kpi c3"><b id="k-attention">0</b><span>Need attention</span></div>
+      <div class="kpi c4"><b id="k-pending">0</b><span>Awaiting approval</span></div>
+      <div class="kpi c5"><b id="k-fixed">0</b><span>Fixed · avg <em id="k-avg" style="font-style:normal">-</em></span></div>
+    </div>
   </section>
 
-  <section>
-    <div class="tabs">
-      <button id="tab-open" class="on" onclick="setTab('open')">Needs attention</button>
-      <button id="tab-history" onclick="setTab('history')">History</button>
-    </div>
-    <div id="issues"></div>
-  </section>
-</main>
+  <main>
+    <section class="panel">
+      <h2><span>Live lab map</span><span id="map-note">Click a PC to focus</span></h2>
+      <div id="map-wrap"><canvas id="map" aria-label="Live map of lab PCs around the LabMend core"></canvas></div>
+      <div class="legend">
+        <span style="color:var(--green)"><i style="background:var(--green)"></i>Healthy</span>
+        <span style="color:var(--amber)"><i style="background:var(--amber)"></i>Wrong version</span>
+        <span style="color:var(--red)"><i style="background:var(--red)"></i>Broken</span>
+        <span style="color:var(--grey)"><i style="background:var(--grey)"></i>Offline</span>
+        <span style="color:var(--cyan)"><i style="background:var(--cyan)"></i>Fix in flight</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="tabs">
+        <button id="tab-open" class="on" onclick="setTab('open')">Needs attention</button>
+        <button id="tab-history" onclick="setTab('history')">History</button>
+      </div>
+      <div id="issues"></div>
+    </section>
+  </main>
+</div>
 
 <script>
 const OPEN = ["diagnosing", "pending", "approved", "applied", "blocked", "manual"];
-let data = { nodes: [], issues: [] }, tab = "open", selected = null;
+const COLOR = { green: "#3CE39A", amber: "#FFB547", red: "#FF5C6C", offline: "#5B6678", cyan: "#4FD8FF", violet: "#9B7BFF" };
+let data = { nodes: [], issues: [] }, tab = "open", selected = null, lastCards = "";
+const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Make text safe to put inside HTML (so an error message can't inject code).
 const safe = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const clock = t => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const secs = s => s < 90 ? `${Math.round(s)} s` : `${Math.round(s / 60)} min`;
 
 function setTab(t) {
   tab = t;
   document.getElementById("tab-open").className = t === "open" ? "on" : "";
   document.getElementById("tab-history").className = t === "history" ? "on" : "";
-  draw();
+  lastCards = ""; drawPanels();
 }
 
-function pick(id) { selected = selected === id ? null : id; draw(); }
+function pick(id) { selected = selected === id ? null : id; lastCards = ""; drawPanels(); }
 
 async function act(id, action) {
   const res = await fetch(`/api/issues/${id}/${action}`, { method: "POST" });
@@ -107,49 +187,171 @@ async function act(id, action) {
   refresh();
 }
 
-function draw() {
+/* ---------------- headline, KPIs, cards ---------------- */
+function drawPanels() {
   const { nodes, issues } = data;
-
-  document.getElementById("grid").innerHTML = nodes.map(n => {
-    const colour = n.online ? n.status : "offline";
-    const sub = n.online ? n.summary : `offline ${n.seconds_ago}s`;
-    return `<div class="tile ${colour} ${selected === n.node_id ? "selected" : ""}" onclick="pick('${safe(n.node_id)}')">
-              ${safe(n.node_id)}<small>${safe(sub)}</small></div>`;
-  }).join("") || `<div class="empty" style="grid-column:1/-1">No PCs yet. Start an agent.</div>`;
-
   const online = nodes.filter(n => n.online);
-  document.getElementById("c-online").textContent = `${online.length} online`;
-  document.getElementById("c-broken").textContent = `${online.filter(n => n.status === "red").length} broken`;
-  document.getElementById("c-pending").textContent = `${issues.filter(i => i.state === "pending").length} waiting approval`;
-  document.getElementById("ai").textContent = data.ai ? `Local AI: ${data.ai}` : "Local AI off · knowledge base only";
-  document.getElementById("note").textContent = selected ? `Showing ${selected} only. Click it again to show all.` : "Click a PC to see only its problems.";
+  const red = online.filter(n => n.status === "red").length;
+  const amber = online.filter(n => n.status === "amber").length;
+  const fixed = issues.filter(i => i.state === "resolved" && /Verified|applied/i.test(i.result || ""));
+  const avg = fixed.length ? fixed.reduce((t, i) => t + (i.updated - i.created), 0) / fixed.length : null;
+
+  const h = document.getElementById("headline"), st = document.getElementById("status");
+  if (!nodes.length) { h.textContent = "Waiting for agents"; h.style.color = "var(--ink)"; st.style.setProperty("--glow", "rgba(79,216,255,.15)"); }
+  else if (red) { h.textContent = `${red} PC${red > 1 ? "s" : ""} broken`; h.style.color = "var(--red)"; st.style.setProperty("--glow", "rgba(255,92,108,.28)"); }
+  else if (amber) { h.textContent = `${amber} PC${amber > 1 ? "s" : ""} drifting`; h.style.color = "var(--amber)"; st.style.setProperty("--glow", "rgba(255,181,71,.25)"); }
+  else { h.textContent = "All systems healthy"; h.style.color = "var(--green)"; st.style.setProperty("--glow", "rgba(60,227,154,.22)"); }
+  document.getElementById("subline").textContent =
+    `${online.length} agent${online.length === 1 ? "" : "s"} reporting · last update ${clock(Date.now() / 1000)}`;
+
+  document.getElementById("k-online").textContent = `${online.length}/${nodes.length}`;
+  document.getElementById("k-healthy").textContent = online.filter(n => n.status === "green").length;
+  document.getElementById("k-attention").textContent = red + amber;
+  document.getElementById("k-pending").textContent = issues.filter(i => i.state === "pending").length;
+  document.getElementById("k-fixed").textContent = fixed.length;
+  document.getElementById("k-avg").textContent = avg === null ? "-" : secs(avg);
+  document.getElementById("ai").textContent = data.ai ? `Local AI · ${data.ai}` : "Knowledge base only";
+  document.getElementById("map-note").textContent = selected ? `Focused on ${selected} · click it again to show all` : "Click a PC to focus";
 
   let list = issues.filter(i => (tab === "open") === OPEN.includes(i.state));
   if (selected) list = list.filter(i => i.node_id === selected);
-
-  document.getElementById("issues").innerHTML = list.map(i => {
-    const samePending = issues.filter(x => x.signature === i.signature && x.state === "pending").length;
-    const by = i.source === "llm" ? "local AI" : i.source === "kb" ? "knowledge base" : "-";
-    return `<div class="card ${i.severity}">
-      <div class="row"><b>${safe(i.node_id)}</b>
-        <span class="tag ${i.state}">${i.state}</span><span class="tag">${safe(i.kind)}</span>
-        <span class="muted">diagnosed by ${by}</span></div>
+  const html = list.map(i => {
+    const same = issues.filter(x => x.signature === i.signature && x.state === "pending").length;
+    const by = i.source === "llm" ? `<span class="by ai">diagnosed by local AI</span>`
+             : i.source === "kb" ? `<span class="by">diagnosed by knowledge base</span>` : "";
+    const sev = i.state === "resolved" ? "done" : i.severity;
+    return `<div class="card ${sev}">
+      <div class="row"><b class="node">${safe(i.node_id)}</b>
+        <span class="tag ${i.state}">${i.state}</span><span class="tag">${safe(i.kind)}</span>${by}
+        <span class="time">${clock(i.created)}</span></div>
       <p>${safe(i.explanation)}</p>
       ${i.error_text ? `<pre>${safe(i.error_text)}</pre>` : ""}
       ${i.fix_text ? `<div class="fix">${safe(i.fix_text)}</div>` : ""}
-      ${i.result ? `<p class="muted">${safe(i.result)}</p>` : ""}
+      ${i.result ? `<p class="result">${safe(i.result)}${i.state === "resolved" ? ` · fixed in ${secs(i.updated - i.created)}` : ""}</p>` : ""}
       ${i.state === "pending" ? `<div class="row" style="margin-top:10px">
-        <button class="approve" onclick="act(${i.id}, 'approve')">Approve fix${samePending > 1 ? ` (${samePending} PCs)` : ""}</button>
+        <button class="approve" onclick="act(${i.id}, 'approve')">Approve fix${same > 1 ? ` · ${same} PCs` : ""}</button>
         <button class="reject" onclick="act(${i.id}, 'reject')">Reject</button></div>` : ""}
       ${i.state === "manual" || i.state === "blocked" ? `<div class="row" style="margin-top:10px">
         <button class="reject" onclick="act(${i.id}, 'reject')">Mark as handled</button></div>` : ""}
     </div>`;
-  }).join("") || `<div class="empty">${tab === "open" ? "Nothing needs attention." : "No history yet."}</div>`;
+  }).join("") || `<div class="empty">${tab === "open" ? "Nothing needs attention. Every PC is healthy." : "No history yet."}</div>`;
+  if (html !== lastCards) { document.getElementById("issues").innerHTML = html; lastCards = html; }   // redraw only on change
 }
 
-async function refresh() {
-  try { data = await (await fetch("/api/state")).json(); draw(); } catch (e) { /* server restarting */ }
+/* ---------------- the live lab map (canvas) ---------------- */
+const canvas = document.getElementById("map"), ctx = canvas.getContext("2d");
+let W = 0, H = 0, spots = [];
+
+function resize() {
+  const r = canvas.parentElement.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  W = r.width; H = r.height;
+  canvas.width = W * dpr; canvas.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
+window.addEventListener("resize", resize); resize();
+
+function glowCircle(x, y, r, color, blur) {
+  ctx.save(); ctx.shadowColor = color; ctx.shadowBlur = blur; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+
+function frame(ms) {
+  const t = ms / 1000;
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.36;
+  const nodes = data.nodes;
+  spots = [];
+
+  // orbit ring
+  ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+
+  nodes.forEach((n, i) => {
+    const a = (i / nodes.length) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R;
+    const state = n.online ? n.status : "offline", col = COLOR[state];
+    const fixing = data.issues.some(s => s.node_id === n.node_id && (s.state === "approved" || s.state === "applied"));
+    spots.push({ id: n.node_id, x, y });
+
+    // link
+    const g = ctx.createLinearGradient(x, y, cx, cy);
+    g.addColorStop(0, col + "AA"); g.addColorStop(1, "rgba(79,216,255,0.15)");
+    ctx.strokeStyle = g; ctx.lineWidth = selected === n.node_id ? 2.2 : 1.2;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(cx, cy); ctx.stroke();
+
+    // packets: reports flow in (node -> core); fixes flow out in cyan (core -> node)
+    if (n.online && !calm) {
+      for (let k = 0; k < 2; k++) {
+        const p = ((t * 0.35 + i * 0.17 + k * 0.5) % 1);
+        glowCircle(x + (cx - x) * p, y + (cy - y) * p, 2.4, col, 10);
+      }
+      if (fixing) for (let k = 0; k < 3; k++) {
+        const p = ((t * 0.6 + k / 3) % 1);
+        glowCircle(cx + (x - cx) * p, cy + (y - cy) * p, 3.2, COLOR.cyan, 16);
+      }
+    }
+
+    // alarm rings around broken PCs
+    if (state === "red" && !calm) {
+      for (let k = 0; k < 2; k++) {
+        const p = (t * 0.7 + k * 0.5) % 1;
+        ctx.strokeStyle = `rgba(255,92,108,${0.55 * (1 - p)})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, 24 + p * 30, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+
+    // node
+    ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = 26;
+    ctx.fillStyle = "#0B1222"; ctx.strokeStyle = col; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, 24, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+    glowCircle(x, y, 7, col, 18);
+    if (selected === n.node_id) { ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 31, 0, Math.PI * 2); ctx.stroke(); }
+
+    // labels
+    const below = y >= cy - 1;
+    ctx.textAlign = "center"; ctx.fillStyle = "#EAF0FA"; ctx.font = "700 14px Segoe UI, Arial";
+    ctx.fillText(n.node_id, x, below ? y + 46 : y - 52);
+    ctx.fillStyle = col; ctx.font = "12px Segoe UI, Arial";
+    ctx.fillText(n.online ? n.summary : `offline ${n.seconds_ago}s`, x, below ? y + 63 : y - 36);
+  });
+
+  // core
+  const coreCol = nodes.some(n => n.online && n.status === "red") ? COLOR.red : COLOR.cyan;
+  ctx.save(); ctx.translate(cx, cy);
+  for (let k = 0; k < 3; k++) {
+    ctx.rotate((calm ? 0 : t * (0.4 + k * 0.25)) * (k % 2 ? -1 : 1));
+    ctx.strokeStyle = k === 1 ? "rgba(155,123,255,0.55)" : "rgba(79,216,255,0.45)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, 44 + k * 12, 0, Math.PI * 1.2); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.save(); ctx.shadowColor = coreCol; ctx.shadowBlur = 40;
+  const cg = ctx.createRadialGradient(cx, cy, 4, cx, cy, 38);
+  cg.addColorStop(0, "#FFFFFF"); cg.addColorStop(0.25, coreCol); cg.addColorStop(1, "rgba(11,18,34,0.9)");
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(cx, cy, 36, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  ctx.fillStyle = "rgba(5,7,13,0.85)"; ctx.fillRect(cx - 80, cy + 80, 160, 38);   // backing so packets don't cross the label
+  ctx.textAlign = "center"; ctx.fillStyle = "#EAF0FA"; ctx.font = "800 13px Segoe UI, Arial";
+  ctx.fillText("LABMEND CORE", cx, cy + 96);
+  ctx.fillStyle = "#A7B3C6"; ctx.font = "11px Consolas, monospace";
+  ctx.fillText(data.ai ? `KB + ${data.ai}` : "knowledge base", cx, cy + 112);
+
+  if (!nodes.length) {
+    ctx.fillStyle = "#6B778C"; ctx.font = "14px Segoe UI, Arial";
+    ctx.fillText("No PCs yet. Start an agent.", cx, cy - 70);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+canvas.addEventListener("click", e => {
+  const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const hit = spots.find(s => Math.hypot(s.x - x, s.y - y) < 34);
+  if (hit) pick(hit.id);
+});
+
+/* ---------------- polling ---------------- */
+async function refresh() {
+  try { data = await (await fetch("/api/state")).json(); drawPanels(); } catch (e) { /* server restarting */ }
+}
+setInterval(() => document.getElementById("clock").textContent = clock(Date.now() / 1000), 1000);
 refresh();
 setInterval(refresh, 2000);
 </script>
