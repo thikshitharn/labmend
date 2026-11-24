@@ -5,5 +5,10 @@
     {"dist": "requests", "module": "requests", "version": "2.32.3"},
     {"dist": "colorama", "module": "colorama", "version": "0.4.6"},
     {"dist": "flask", "module": "flask", "version": "3.1.0"}
-  ]
+  ],
+  "tools": [
+    {"name": "git", "min": "2.30"},
+    {"name": "node", "min": "18.0"}
+  ],
+  "min_disk_gb": 2
 }

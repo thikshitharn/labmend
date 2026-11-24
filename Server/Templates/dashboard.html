@@ -97,6 +97,7 @@
   .tag.applied, .tag.resolved { color: var(--green); background: rgba(60,227,154,.12); }
   .tag.blocked, .tag.failed { color: var(--red); background: rgba(255,92,108,.12); }
   .tag.diagnosing { color: var(--violet); background: rgba(155,123,255,.14); }
+  .tag.manual, .tag.acknowledged { color: #FFD9A0; background: rgba(255,181,71,.10); }
   .by { font-size: 12px; color: var(--muted); }
   .by.ai { color: var(--violet); font-weight: 700; text-shadow: 0 0 10px rgba(155,123,255,.5); }
   .time { margin-left: auto; font-size: 12px; color: var(--muted); font-family: var(--mono); }
@@ -172,7 +173,7 @@
 </div>
 
 <script>
-const OPEN = ["diagnosing", "pending", "approved", "applied", "blocked", "manual"];
+const OPEN = ["diagnosing", "pending", "approved", "applied", "blocked", "manual", "acknowledged"];
 const COLOR = { green: "#3CE39A", amber: "#FFB547", red: "#FF5C6C", offline: "#5B6678", cyan: "#4FD8FF", violet: "#9B7BFF" };
 let data = { nodes: [], issues: [] }, tab = "open", selected = null, lastCards = "";
 const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -264,7 +265,7 @@ function drawPanels() {
         <button class="approve" onclick="act(${i.id}, 'approve')">Approve fix${same > 1 ? ` · ${same} PCs` : ""}</button>
         <button class="reject" onclick="act(${i.id}, 'reject')">Reject</button></div>` : ""}
       ${i.state === "manual" || i.state === "blocked" ? `<div class="row" style="margin-top:10px">
-        <button class="reject" onclick="act(${i.id}, 'reject')">Mark as handled</button></div>` : ""}
+        <button class="reject" onclick="act(${i.id}, 'reject')">${["tool", "disk", "env"].includes(i.kind) ? "Acknowledge" : "Mark as handled"}</button></div>` : ""}
     </div>`;
   }).join("") || `<div class="empty">${tab === "open" ? "Nothing needs attention. Every PC is healthy." : "No history yet."}</div>`;
   if (html !== lastCards) { document.getElementById("issues").innerHTML = html; lastCards = html; }   // redraw only on change

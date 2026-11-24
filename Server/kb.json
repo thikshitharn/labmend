@@ -11,6 +11,24 @@
     "missing": "'{dist}' is not installed in this PC's lab environment, so 'import {module}' fails with ModuleNotFoundError.",
     "broken": "'{dist}' is installed but fails to import (corrupted or half-finished install). A clean reinstall usually fixes it.",
     "version": "'{dist}' is version {found}, but the lab requires {expected}. Code written for {expected} may behave differently.",
-    "runtime_missing": "The student's program crashed because module '{module}' is not installed. It belongs to the package '{dist}'."
+    "runtime_missing": "The student's program crashed because module '{module}' is not installed. It belongs to the package '{dist}'.",
+    "tool_missing": "{label} is not installed on this PC (or not on its PATH), but {course} needs it. Install it from {url}. LabMend flags system software instead of installing it, because that needs administrator rights.",
+    "tool_old": "{label} {found} is installed, but {course} needs version {min} or newer. Update it from {url}.",
+    "disk": "Only {free} GB of disk space is free on this PC, but {course} needs at least {min} GB. Free up space before class.",
+    "env": "The environment variable {name} is not set on this PC, but {course} needs it. Set it in Windows: System Properties → Environment Variables."
+  },
+  "tools": {
+    "git": {
+      "label": "Git",
+      "url": "git-scm.com"
+    },
+    "node": {
+      "label": "Node.js",
+      "url": "nodejs.org"
+    },
+    "java": {
+      "label": "Java (JDK)",
+      "url": "adoptium.net"
+    }
   }
 }

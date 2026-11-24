@@ -64,6 +64,31 @@ def diagnose(finding, manifest):
                 "error_text": error, "source": "none", "fix": None, "needs_llm": True,
                 "explanation": "Unknown error. Asking the local AI..."}
 
+    # ---- system checks: flagged with instructions, never auto-installed ----
+    course = manifest.get("course", "this course")
+    if kind == "tool":
+        info = KB["tools"].get(finding["name"], {"label": finding["name"], "url": "the vendor's website"})
+        if finding.get("found"):
+            return {"kind": "tool", "severity": "amber", "signature": f"tool:{finding['name']}",
+                    "error_text": f"{info['label']} {finding['found']} found, {finding['min']}+ required",
+                    "source": "kb", "fix": None,
+                    "explanation": text["tool_old"].format(label=info["label"], found=finding["found"],
+                                                           min=finding["min"], course=course, url=info["url"])}
+        return {"kind": "tool", "severity": "red", "signature": f"tool:{finding['name']}",
+                "error_text": f"'{finding['name']}' command not found", "source": "kb", "fix": None,
+                "explanation": text["tool_missing"].format(label=info["label"], course=course, url=info["url"])}
+
+    if kind == "disk":
+        return {"kind": "disk", "severity": "amber", "signature": "disk",
+                "error_text": f"{finding['free_gb']} GB free, {finding['min_gb']} GB required",
+                "source": "kb", "fix": None,
+                "explanation": text["disk"].format(free=finding["free_gb"], min=finding["min_gb"], course=course)}
+
+    if kind == "env":
+        return {"kind": "env", "severity": "amber", "signature": f"env:{finding['name']}",
+                "error_text": f"{finding['name']} is not set", "source": "kb", "fix": None,
+                "explanation": text["env"].format(name=finding["name"], course=course)}
+
     return {"kind": "unknown", "severity": "amber", "signature": f"unknown:{kind}",
             "error_text": json.dumps(finding), "source": "none", "fix": None,
             "explanation": "LabMend does not recognise this finding."}

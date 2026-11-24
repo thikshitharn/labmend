@@ -9,7 +9,7 @@ import config
 _lock = threading.Lock()   # only one thread writes at a time
 
 # States where a problem is still "open" (not finished).
-OPEN_STATES = ("diagnosing", "pending", "approved", "applied", "blocked", "manual")
+OPEN_STATES = ("diagnosing", "pending", "approved", "applied", "blocked", "manual", "acknowledged")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS nodes (

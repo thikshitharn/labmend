@@ -232,7 +232,12 @@ def approve(issue_id):
 @app.post("/api/issues/<int:issue_id>/reject")
 @instructor_only
 def reject(issue_id):
-    db.update_issue(issue_id, state="rejected", result="Rejected by the instructor.")
+    issue = db.get_issue(issue_id) or abort(404)
+    if issue["kind"] in ("tool", "disk", "env") and issue["state"] == "manual":
+        # The teacher has seen it; it stays on the list until the PC is actually fixed.
+        db.update_issue(issue_id, state="acknowledged", result="Acknowledged by the teacher. Stays until the PC is fixed.")
+    else:
+        db.update_issue(issue_id, state="rejected", result="Rejected by the instructor.")
     return jsonify({"ok": True})
 
 
